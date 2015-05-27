@@ -1,0 +1,7 @@
+#compdef unarchive
+#autoload
+
+_arguments \
+  '-r[remove archive]' \
+  '-n[don''t use parallel]' \
+  '*:files:_files' && return 0

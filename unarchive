@@ -1,0 +1,167 @@
+#!/usr/bin/env bash
+set -e
+set -o pipefail
+
+prog="$(basename "$0")"
+archives=()
+par=1
+
+usage() {
+	cat >&2 <<-EOF
+	Usage: $prog [option ...] file [file ...]
+	Extracts the content of archives.
+
+	Options:
+	  -h    Show this help
+	  -n    Do not run unarchiving operations in parallel
+	EOF
+}
+
+exists() { hash "$1" 2>/dev/null; }
+err() { printf '%s: %s\n' "$prog" "$1" >&2; }
+
+untar() {
+	local type
+	type="$(file -E -bL --mime-type "$1")"
+	if (($?)); then
+		err "$type"
+		return 1
+	fi
+	case "$type" in
+	'application/x-tar')
+		tar xvf "$1" ;;
+	'application/x-bzip2')
+		tar xvjf "$1" ;;
+	'application/x-gzip')
+		tar xvzf "$1" ;;
+	'application/x-lrzip')
+		if bsdtar --lrzip --help &> /dev/null; then
+			bsdtar --lrzip -xvf "$1"
+		else
+			lrzcat "$1" | tar xvf -
+		fi
+		;;
+	'application/x-lzip')
+		lzip --keep --decompress --stdout "$1" | tar xvf - ;;
+	'application/x-lzma')
+		if tar --lzma --help &> /dev/null; then
+			tar --lzma -xvf "$1"
+		else
+			lzcat "$1" | tar xvf -
+		fi
+		;;
+	'application/x-xz')
+		if tar --xz --help &> /dev/null; then
+			tar --xz -xvf "$1"
+		else
+			xzcat "$1" | tar xvf -
+		fi
+		;;
+	*)
+		printf "%s: cannot extract: %s" "$prog" "$1" >&2
+		return 1
+		;;
+	esac
+}
+
+extract() {
+	local type
+	type="$(file -E -bL --mime-type "$1")"
+	if (($?)); then
+		err "$type"
+		return 1
+	fi
+	case "$type" in
+	'application/x-7z-compressed')
+		7za x "$1" ;;
+	'application/java-archive'|'application/zip')
+		unzip "$1" -d "$extract_dir" ;;
+	'application/x-debian-package')
+		mkdir -p "$extract_dir/control"
+		mkdir -p "$extract_dir/data"
+		cd "$extract_dir"; ar vx "../${1}" > /dev/null
+		cd control; tar xzvf ../control.tar.gz
+		cd ../data; tar xzvf ../data.tar.gz
+		cd ..; rm -- *.tar.gz debian-binary
+		cd ..
+		;;
+	'application/x-rar')
+		if exists unrar; then
+			unrar x -ad "$1"
+		else
+			rar e -ad "$1"
+		fi
+		;;
+	'application/x-bzip2')
+		bunzip2 --keep "$1" ;;
+	'application/x-gzip')
+		gunzip --keep "$1" ;;
+	'application/x-lrzip')
+		# lrunzip keeps input by default
+		lrunzip "$1" ;;
+	'application/x-lzip')
+		lzip --decompress --keep "$1";;
+	'application/x-lzma')
+		unlzma --keep "$1" ;;
+	'application/x-xz')
+		unxz --keep "$1" ;;
+	*)
+		printf "%s: cannot extract: %s (no handler for '%s')\n" \
+			"$prog" "$1" "$type" >&2
+		return 1
+		;;
+	esac
+}
+
+unarchive() {
+	local type
+	type="$(file -E -bzL --mime-type "$1")"
+	if (($?)); then
+		err "$type"
+		return 1
+	fi
+	case "$type" in
+	'application/x-tar')
+		untar "$1"
+		;;
+	*)
+		extract "$1"
+		;;
+	esac
+}
+
+while (($#)); do
+	case "$1" in
+	-h)
+		usage
+		exit
+		;;
+	-n)
+		par=0
+		shift
+		;;
+	*)
+		archives+=("$1")
+		shift
+		;;
+	esac
+done
+
+if (( par  && ${#archives[@]} > 1 )) && exists 'parallel'; then
+	for archive in "${archives[@]}"; do
+		printf '%s\0' "$archive"
+	done | parallel --bar -0 "$0" -n
+	exit $?
+fi
+
+exit_status=0
+
+for archive in "${archives[@]}"; do
+	file_name="$(basename "$archive")"
+	extract_dir="${file_name%.*}"
+	if ! unarchive "$archive"; then
+		exit_status=1
+	fi
+done
+
+exit "$exit_status"

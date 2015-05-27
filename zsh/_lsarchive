@@ -1,0 +1,6 @@
+#compdef lsarchive
+#autoload
+
+_arguments \
+  '-v[verbose archive listing]' \
+  '*:files:_files' && return 0
