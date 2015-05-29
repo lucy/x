@@ -33,7 +33,7 @@ lstar() {
 	'application/x-bzip2')
 		tar t${v}jf "$1" ;;
 	'application/x-gzip')
-		tar t${v}vzf "$1" ;;
+		tar t${v}zf "$1" ;;
 	'application/x-lrzip')
 		if bsdtar --lrzip --help &> /dev/null; then
 			bsdtar --lrzip -t${v}f "$1"
