@@ -4,6 +4,7 @@ set -o pipefail
 
 prog="$(basename "$0")"
 archives=()
+clobber=0
 
 usage() {
 	cat >&2 <<-EOF
@@ -14,6 +15,7 @@ usage() {
 
 	Options:
 	  -h    Show this help
+	  -f    Allow clobbering files (omitting this is not guaranteed to work)
 	EOF
 }
 
@@ -27,34 +29,38 @@ untar() {
 		err "$type"
 		return 1
 	fi
+	k=k
+	if ((clobber)); then
+		k=''
+	fi
 	case "$type" in
 	'application/x-tar')
-		tar xvf "$1" ;;
+		tar x${k}vf "$1" ;;
 	'application/x-bzip2')
-		tar xvjf "$1" ;;
+		tar x${k}vjf "$1" ;;
 	'application/x-gzip')
-		tar xvzf "$1" ;;
+		tar x${k}vzf "$1" ;;
 	'application/x-lrzip')
 		if bsdtar --lrzip --help &> /dev/null; then
-			bsdtar --lrzip -xvf "$1"
+			bsdtar --lrzip -x${k}vf "$1"
 		else
-			lrzcat "$1" | tar xvf -
+			lrzcat "$1" | tar x${k}vf -
 		fi
 		;;
 	'application/x-lzip')
-		lzip --keep --decompress --stdout "$1" | tar xvf - ;;
+		lzip --keep --decompress --stdout "$1" | tar x${k}vf - ;;
 	'application/x-lzma')
 		if tar --lzma --help &> /dev/null; then
-			tar --lzma -xvf "$1"
+			tar --lzma -x${k}vf "$1"
 		else
-			lzcat "$1" | tar xvf -
+			lzcat "$1" | tar x${k}vf -
 		fi
 		;;
 	'application/x-xz')
 		if tar --xz --help &> /dev/null; then
-			tar --xz -xvf "$1"
+			tar --xz -x${k}vf "$1"
 		else
-			xzcat "$1" | tar xvf -
+			xzcat "$1" | tar x${k}vf -
 		fi
 		;;
 	*)
@@ -73,17 +79,10 @@ extract() {
 	fi
 	case "$type" in
 	'application/x-7z-compressed')
-		7za x "$1" ;;
+		7za x "$1"
+		;;
 	'application/java-archive'|'application/zip')
-		unzip "$1" -d "$extract_dir" ;;
-	'application/x-debian-package')
-		mkdir -p "$extract_dir/control"
-		mkdir -p "$extract_dir/data"
-		cd "$extract_dir"; ar vx "../${1}" > /dev/null
-		cd control; tar xzvf ../control.tar.gz
-		cd ../data; tar xzvf ../data.tar.gz
-		cd ..; rm -- *.tar.gz debian-binary
-		cd ..
+		unzip "$1" -d "$extract_dir"
 		;;
 	'application/x-rar')
 		if exists unrar; then
@@ -136,6 +135,8 @@ while (($#)); do
 		usage
 		exit
 		;;
+	-c)
+		clobber=1
 		shift
 		;;
 	*)
