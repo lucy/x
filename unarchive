@@ -4,16 +4,16 @@ set -o pipefail
 
 prog="$(basename "$0")"
 archives=()
-par=1
 
 usage() {
 	cat >&2 <<-EOF
 	Usage: $prog [option ...] file [file ...]
 	Extracts the content of archives.
 
+	To extract in parallel, use the gnu parallel utility or xargs.
+
 	Options:
 	  -h    Show this help
-	  -n    Do not run unarchiving operations in parallel
 	EOF
 }
 
@@ -136,8 +136,6 @@ while (($#)); do
 		usage
 		exit
 		;;
-	-n)
-		par=0
 		shift
 		;;
 	*)
@@ -146,13 +144,6 @@ while (($#)); do
 		;;
 	esac
 done
-
-if (( par  && ${#archives[@]} > 1 )) && exists 'parallel'; then
-	for archive in "${archives[@]}"; do
-		printf '%s\0' "$archive"
-	done | parallel --bar -0 "$0" -n
-	exit $?
-fi
 
 exit_status=0
 
