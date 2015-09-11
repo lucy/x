@@ -2,6 +2,5 @@
 #autoload
 
 _arguments \
-  '-r[remove archive]' \
-  '-n[don''t use parallel]' \
+  '-f[allow clobbering]' \
   '*:files:_files' && return 0
