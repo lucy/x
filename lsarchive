@@ -20,6 +20,15 @@ usage() {
 exists() { hash "$1" 2>/dev/null; }
 err() { printf '%s: %s\n' "$prog" "$1" >&2; }
 
+if exists bsdtar; then
+	tar=bsdtar
+else
+	tar=tar
+fi
+
+bsdtar_list() { bsdtar -t${v}f "$1"; }
+tar_list() { "$tar" -t${v}f "$1"; }
+
 lstar() {
 	local type
 	type="$(file -E -bL --mime-type "$1")"
@@ -29,38 +38,37 @@ lstar() {
 	fi
 	case "$type" in
 	'application/x-tar')
-		tar t${v}f "$1" ;;
+		tar_list "$1" ;;
 	'application/x-bzip2')
-		tar t${v}jf "$1" ;;
+		tar_list "$1" ;;
 	'application/x-gzip')
-		tar t${v}zf "$1" ;;
+		tar_list "$1" ;;
 	'application/x-lrzip')
 		if bsdtar --lrzip --help &> /dev/null; then
-			bsdtar --lrzip -t${v}f "$1"
+			bsdtar_list "$1"
 		else
-			lrzcat "$1" | tar t${v}f -
+			lrzcat "$1" | tar_list -
 		fi
 		;;
 	'application/x-lzip')
-		lzip --keep --quiet --decompress --stdout "$1" | tar t${v}f - ;;
+		lzip --keep --quiet --decompress --stdout "$1" | tar_list - ;;
 	'application/x-lzma')
-		if tar --lzma --help &> /dev/null; then
-			tar --lzma -t${v}f "$1"
+		if "$tar" --lzma --help &> /dev/null; then
+			tar_list "$1"
 		else
-			lzcat "$1" | tar t${v}f -
+			lzcat "$1" | tar_list -
 		fi
 		;;
 	'application/x-xz')
-		if tar --xz --help &> /dev/null; then
-			tar --xz -t${v}f "$1"
+		if "$tar" --xz --help &> /dev/null; then
+			tar_list "$1"
 		else
-			xzcat "$1" | tar t${v}f -
+			xzcat "$1" | tar_list -
 		fi
 		;;
 	*)
-		printf "%s: cannot list: %s" "$prog" "$1" >&2
-		return 1
-		;;
+		# last resort
+		bsdtar_list "$1" ;;
 	esac
 }
 
@@ -73,22 +81,26 @@ lsarchive() {
 	fi
 	case "$(file -bL --mime-type "$1")" in
 	'application-x-7z-compressed')
-		7za l "$1"
+		if exists 7za; then
+			7za l "$1"
+		else
+			bsdtar_list "$1"
+		fi
 		;;
 	'application/java-archive'|'application/zip')
 		unzip -l${v} "$1"
 		;;
 	'application/x-rar')
-		if unrar; then
+		if exists unrar; then
 			unrar -"${v:-l}" "$1"
 		else
 			rar -"${v:-l}" "$1"
 		fi
 		;;
 	*)
-		printf "%s: cannot list: %s (no handler for '%s')\n" \
+		printf "%s: no handler for '%s' (%s), trying bsdtar\n" \
 			"$prog" "$1" "$type" >&2
-		return 1
+		bsdtar_list "$1"
 		;;
 esac
 }
