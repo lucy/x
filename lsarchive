@@ -37,11 +37,7 @@ lstar() {
 		return 1
 	fi
 	case "$type" in
-	'application/x-tar')
-		tar_list "$1" ;;
-	'application/x-bzip2')
-		tar_list "$1" ;;
-	'application/x-gzip')
+	'application/x-tar'|'application/x-bzip2'|'application/x-gzip')
 		tar_list "$1" ;;
 	'application/x-lrzip')
 		if bsdtar --lrzip --help &> /dev/null; then
@@ -88,13 +84,19 @@ lsarchive() {
 		fi
 		;;
 	'application/java-archive'|'application/zip')
-		unzip -l${v} "$1"
+		if exists bsdtar; then
+			bsdtar_list "$1"
+		else
+			unzip -l${v} "$1"
+		fi
 		;;
 	'application/x-rar')
 		if exists unrar; then
 			unrar -"${v:-l}" "$1"
-		else
+		elif exists rar; then
 			rar -"${v:-l}" "$1"
+		else
+			bsdtar_list "$1"
 		fi
 		;;
 	*)

@@ -43,11 +43,7 @@ untar() {
 		k=''
 	fi
 	case "$type" in
-	'application/x-tar')
-		tar_x "$1" ;;
-	'application/x-bzip2')
-		tar_x "$1" ;;
-	'application/x-gzip')
+	'application/x-tar'|'application/x-bzip2'|'application/x-gzip')
 		tar_x "$1" ;;
 	'application/x-lrzip')
 		if bsdtar --lrzip --help &> /dev/null; then
@@ -94,13 +90,19 @@ extract() {
 		fi
 		;;
 	'application/java-archive'|'application/zip')
-		unzip "$1" -d "$extract_dir"
+		if exists bsdtar; then
+			bsdtar_x "$1"
+		else
+			unzip "$1" -d "$extract_dir"
+		fi
 		;;
 	'application/x-rar')
 		if exists unrar; then
 			unrar x -ad "$1"
-		else
+		elif exists rar; then
 			rar e -ad "$1"
+		else
+			bsdtar_x "$1"
 		fi
 		;;
 	'application/x-bzip2')
