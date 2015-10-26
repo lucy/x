@@ -5,6 +5,9 @@ set -o pipefail
 prog="$(basename "$0")"
 archives=()
 clobber=0
+create_dir=0
+out_dir=""
+prefix=""
 
 usage() {
 	cat >&2 <<-EOF
@@ -16,6 +19,8 @@ usage() {
 	Options:
 	  -h    Show this help
 	  -f    Don't try to avoid clobbering files
+	  -d    Output directory
+	  -c    Create output directory
 	EOF
 }
 
@@ -185,6 +190,19 @@ while (($#)); do
 		clobber=1
 		shift
 		;;
+	-d)
+		if [[ -z "$2" ]]; then
+			err 'argument required for -d'
+			usage
+			exit 1
+		fi
+		out_dir="$2"
+		shift 2
+		;;
+	-c)
+		create_dir=1
+		shift
+		;;
 	*)
 		archives+=("$1")
 		shift
@@ -194,10 +212,19 @@ done
 
 exit_status=0
 
+if [[ -n "$out_dir" ]]; then
+	if ((create_dir)); then mkdir -p "$out_dir"; fi
+	if [[ ! -d "$out_dir" ]]; then
+		errf "output directory doesn't exist: %s\n" "$out_dir"
+	fi
+	prefix="$PWD/"
+	cd "$out_dir"
+fi
+
 for archive in "${archives[@]}"; do
 	file_name="$(basename "$archive")"
 	extract_dir="${file_name%.*}"
-	if ! unarchive "$archive"; then
+	if ! unarchive "$prefix$archive"; then
 		exit_status=1
 	fi
 done
