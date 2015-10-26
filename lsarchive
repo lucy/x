@@ -18,7 +18,8 @@ usage() {
 }
 
 exists() { hash "$1" 2>/dev/null; }
-err() { printf '%s: %s\n' "$prog" "$1" >&2; }
+err() { printf '%s: %s\n' "$prog" "$1" 1>&2; }
+errf() { fmt="$1"; shift; printf "%s: $fmt\n", "$prog" "$@" 1>&2; }
 
 if exists bsdtar; then
 	tar=bsdtar
@@ -100,8 +101,7 @@ lsarchive() {
 		fi
 		;;
 	*)
-		printf "%s: no handler for '%s' (%s), trying bsdtar\n" \
-			"$prog" "$1" "$type" >&2
+		errf "no handler for '%s' (%s), trying bsdtar\n" "$1" "$type"
 		bsdtar_list "$1"
 		;;
 esac
