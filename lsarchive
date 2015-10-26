@@ -13,7 +13,7 @@ usage() {
 
 	Options:
 	  -h    Show this help
-	  -v    Verbose archive listing
+	  -v    Try to be verbose
 	EOF
 }
 

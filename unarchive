@@ -15,7 +15,7 @@ usage() {
 
 	Options:
 	  -h    Show this help
-	  -f    Allow clobbering files (omitting this is not guaranteed to work)
+	  -f    Don't try to avoid clobbering files
 	EOF
 }
 
