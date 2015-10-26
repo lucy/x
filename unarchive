@@ -29,8 +29,8 @@ else
 	tar=tar
 fi
 
-bsdtar_x() { bsdtar "-x${k}vf" "$1"; }
-tar_x() { "$tar" "-x${k}vf" "$1"; }
+bsdtar_x() { bsdtar "-x${k}vf" "$@"; }
+tar_x() { "$tar" "-x${k}vf" "$@"; }
 
 untar() {
 	local type
@@ -92,7 +92,9 @@ extract() {
 		;;
 	'application/java-archive'|'application/zip')
 		if exists bsdtar; then
-			bsdtar_x "$1"
+			if mkdir "$extract_dir"; then
+				bsdtar_x "$1" -C "$extract_dir" || rmdir "$extract_dir"
+			fi
 		else
 			unzip "$1" -d "$extract_dir"
 		fi
@@ -107,18 +109,48 @@ extract() {
 		fi
 		;;
 	'application/x-bzip2')
-		bunzip2 --keep "$1" ;;
+		if exists bsdtar; then
+			bsdtar_x "$1"
+		else
+			bunzip2 --keep "$1"
+		fi
+		;;
 	'application/x-gzip')
-		gunzip --keep "$1" ;;
+		if exists bsdtar; then
+			bsdtar_x "$1"
+		else
+			gunzip --keep "$1"
+		fi
+		;;
 	'application/x-lrzip')
-		# lrunzip keeps input by default
-		lrunzip "$1" ;;
+		if exists bsdtar; then
+			bsdtar_x "$1"
+		else
+			# lrunzip keeps input by default
+			lrunzip "$1"
+		fi
+		;;
 	'application/x-lzip')
-		lzip --decompress --keep "$1";;
+		if exists bsdtar; then
+			bsdtar_x "$1"
+		else
+			lzip --decompress --keep "$1"
+		fi
+		;;
 	'application/x-lzma')
-		unlzma --keep "$1" ;;
+		if exists bsdtar; then
+			bsdtar_x "$1"
+		else
+			unlzma --keep "$1"
+		fi
+		;;
 	'application/x-xz')
-		unxz --keep "$1" ;;
+		if exists bsdtar; then
+			bsdtar_x "$1"
+		else
+			unxz --keep "$1"
+		fi
+		;;
 	*)
 		errf "no handler for '%s' (%s), trying bsdtar\n" "$1" "$type"
 		bsdtar_x "$1"
