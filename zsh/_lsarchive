@@ -3,4 +3,5 @@
 
 _arguments \
   '-v[verbose archive listing]' \
-  '*:files:_files' && return 0
+  '-h[show help]' \
+  '*:files:_files'

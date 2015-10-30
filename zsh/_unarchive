@@ -3,4 +3,7 @@
 
 _arguments \
   '-f[allow clobbering]' \
-  '*:files:_files' && return 0
+  '-d[output directory]' \
+  '-c[create output directory]' \
+  '-h[show help]' \
+  '*:files:_files'
