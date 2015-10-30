@@ -74,6 +74,9 @@ untar() {
 			xzcat "$1" | tar_x -
 		fi
 		;;
+	'application/x-lz4')
+		lz4cat "$1" | tar_x -
+		;;
 	*)
 		# last resort
 		bsdtar_x "$1" ;;
@@ -155,6 +158,9 @@ extract() {
 		else
 			unxz --keep "$1"
 		fi
+		;;
+	'application/x-lz4')
+		lz4 -d "$1"
 		;;
 	*)
 		errf "no handler for '%s' (%s), trying bsdtar\n" "$1" "$type"

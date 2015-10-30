@@ -63,6 +63,9 @@ lstar() {
 			xzcat "$1" | tar_list -
 		fi
 		;;
+	'application/x-lz4')
+		lz4cat "$1" | tar_list -
+		;;
 	*)
 		# last resort
 		bsdtar_list "$1" ;;
