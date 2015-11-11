@@ -117,46 +117,46 @@ extract() {
 		fi
 		;;
 	'application/x-bzip2')
-		if exists bsdtar; then
-			bsdtar_x "$1"
-		else
+		if exists bunzip2; then
 			bunzip2 --keep "$1"
+		else
+			bsdtar_x "$1"
 		fi
 		;;
 	'application/x-gzip')
-		if exists bsdtar; then
-			bsdtar_x "$1"
-		else
+		if exists gunzip; then
 			gunzip --keep "$1"
+		else
+			bsdtar_x "$1"
 		fi
 		;;
 	'application/x-lrzip')
-		if exists bsdtar; then
-			bsdtar_x "$1"
-		else
+		if exists lrunzip; then
 			# lrunzip keeps input by default
 			lrunzip "$1"
+		else
+			bsdtar_x "$1"
 		fi
 		;;
 	'application/x-lzip')
-		if exists bsdtar; then
-			bsdtar_x "$1"
-		else
+		if exists lzip; then
 			lzip --decompress --keep "$1"
+		else
+			bsdtar_x "$1"
 		fi
 		;;
 	'application/x-lzma')
-		if exists bsdtar; then
-			bsdtar_x "$1"
-		else
+		if exists unlzma; then
 			unlzma --keep "$1"
+		else
+			bsdtar_x "$1"
 		fi
 		;;
 	'application/x-xz')
-		if exists bsdtar; then
-			bsdtar_x "$1"
-		else
+		if exists unxz; then
 			unxz --keep "$1"
+		else
+			bsdtar_x "$1"
 		fi
 		;;
 	'application/x-lz4')
@@ -216,8 +216,6 @@ while (($#)); do
 	esac
 done
 
-exit_status=0
-
 if [[ -n "$out_dir" ]]; then
 	if ((create_dir)); then mkdir -p "$out_dir"; fi
 	if [[ ! -d "$out_dir" ]]; then
@@ -226,6 +224,8 @@ if [[ -n "$out_dir" ]]; then
 	prefix="$PWD/"
 	cd "$out_dir"
 fi
+
+exit_status=0
 
 for archive in "${archives[@]}"; do
 	file_name="$(basename "$archive")"
