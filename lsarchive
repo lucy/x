@@ -16,7 +16,7 @@ usage() {
 	EOF
 }
 
-exists() { hash "$1" 2>/dev/null; }
+exists() { command -v foo >/dev/null 2>&1; }
 err() { printf '%s: %s\n' "$prog" "$1" 1>&2; }
 errf() { fmt="$1"; shift; printf "%s: $fmt\n", "$prog" "$@" 1>&2; }
 
