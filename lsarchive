@@ -1,9 +1,8 @@
-#!/usr/bin/env bash
+#!/bin/sh
+
 set -e
-set -o pipefail
 
 prog="$(basename "$0")"
-archives=()
 v=''
 
 usage() {
@@ -31,17 +30,16 @@ bsdtar_list() { bsdtar -t${v}f "$1"; }
 tar_list() { "$tar" -t${v}f "$1"; }
 
 lstar() {
-	local type
-	type="$(file -E -bL --mime-type "$1")"
-	if (($?)); then
-		err "$type"
+	type_tar="$(file -E -bL --mime-type "$1")"
+	if [ "$?" != 0 ]; then
+		err "$type_tar"
 		return 1
 	fi
-	case "$type" in
+	case "$type_tar" in
 	'application/x-tar'|'application/x-bzip2'|'application/x-gzip')
 		tar_list "$1" ;;
 	'application/x-lrzip')
-		if bsdtar --lrzip --help &> /dev/null; then
+		if bsdtar --lrzip --help >/dev/null 2>&1; then
 			bsdtar_list "$1"
 		else
 			lrzcat "$1" | tar_list -
@@ -50,14 +48,14 @@ lstar() {
 	'application/x-lzip')
 		lzip --keep --quiet --decompress --stdout "$1" | tar_list - ;;
 	'application/x-lzma')
-		if "$tar" --lzma --help &> /dev/null; then
+		if "$tar" --lzma --help >/dev/null 2>&1; then
 			tar_list "$1"
 		else
 			lzcat "$1" | tar_list -
 		fi
 		;;
 	'application/x-xz')
-		if "$tar" --xz --help &> /dev/null; then
+		if "$tar" --xz --help >/dev/null 2>&1; then
 			tar_list "$1"
 		else
 			xzcat "$1" | tar_list -
@@ -73,10 +71,9 @@ lstar() {
 }
 
 lsarchive() {
-	local type
-	type="$(file -E -bL --mime-type "$1")"
-	if (($?)); then
-		err "$type"
+	type_ar="$(file -E -bL --mime-type "$1")"
+	if [ "$?" != 0 ]; then
+		err "$type_ar"
 		return 1
 	fi
 	case "$(file -bL --mime-type "$1")" in
@@ -104,16 +101,15 @@ lsarchive() {
 		fi
 		;;
 	*)
-		errf "no handler for '%s' (%s), trying bsdtar\n" "$1" "$type"
+		errf "no handler for '%s' (%s), trying bsdtar\n" "$1" "$type_ar"
 		bsdtar_list "$1"
 		;;
 esac
 }
 
 ls() {
-	local type
 	type="$(file -E -bzL --mime-type "$1")"
-	if (($?)); then
+	if [ "$?" != 0 ]; then
 		err "$type"
 		return 1
 	fi
@@ -128,26 +124,20 @@ ls() {
 	esac
 }
 
-while (($#)); do
+while :; do
 	case "$1" in
-	-h)
-		usage
-		exit
-		;;
-	-v)
-		v=v
-		shift
-		;;
-	*)
-		archives+=("$1")
-		shift
-		;;
+	'') break ;;
+	--) shift; break ;;
+	-h) usage; exit ;;
+	-v) v=v; shift ;;
+	-?*) printf '%s: invalid option: %s\n' "$(basename "$0")" "$1" 1>&2; exit 1 ;;
+	*) break ;;
 	esac
 done
 
 exit_status=0
 
-for archive in "${archives[@]}"; do
+for archive in "$@"; do
 	if ! ls "$archive"; then
 		exit_status=1
 	fi

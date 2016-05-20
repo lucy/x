@@ -1,9 +1,8 @@
-#!/usr/bin/env bash
+#!/bin/sh
+
 set -e
-set -o pipefail
 
 prog="$(basename "$0")"
-archives=()
 clobber=0
 create_dir=0
 out_dir=""
@@ -11,7 +10,7 @@ prefix=""
 
 usage() {
 	cat >&2 <<-EOF
-	Usage: $prog [option ...] file [file ...]
+	Usage: $prog [options] ['--'] files
 	Extracts the content of archives.
 
 	To extract in parallel, use the gnu parallel utility or xargs.
@@ -24,7 +23,7 @@ usage() {
 	EOF
 }
 
-exists() { hash "$1" 2>/dev/null; }
+exists() { command -v foo >/dev/null 2>&1; }
 err() { printf '%s: %s\n' "$prog" "$1" 1>&2; }
 errf() { fmt="$1"; shift; printf "%s: $fmt\n", "$prog" "$@" 1>&2; }
 
@@ -38,21 +37,20 @@ bsdtar_x() { bsdtar "-x${k}vf" "$@"; }
 tar_x() { "$tar" "-x${k}vf" "$@"; }
 
 untar() {
-	local type
-	type="$(file -E -bL --mime-type "$1")"
-	if (($?)); then
-		err "$type"
+	type_tar="$(file -E -bL --mime-type "$1")"
+	if [ "$?" != 0 ]; then
+		err "$type_tar"
 		return 1
 	fi
 	k=k
-	if ((clobber)); then
+	if [ "$clobber" != 0 ]; then
 		k=''
 	fi
-	case "$type" in
+	case "$type_tar" in
 	'application/x-tar'|'application/x-bzip2'|'application/x-gzip')
 		tar_x "$1" ;;
 	'application/x-lrzip')
-		if "$tar" --lrzip --help &> /dev/null; then
+		if "$tar" --lrzip --help >/dev/null 2>&1; then
 			bsdtar_x "$1"
 		else
 			lrzcat "$1" | tar_x -
@@ -61,14 +59,14 @@ untar() {
 	'application/x-lzip')
 		lzip --keep --decompress --stdout "$1" | tar_x - ;;
 	'application/x-lzma')
-		if "$tar" --lzma --help &> /dev/null; then
+		if "$tar" --lzma --help >/dev/null 2>&1; then
 			tar_x "$1"
 		else
 			lzcat "$1" | tar_x -
 		fi
 		;;
 	'application/x-xz')
-		if "$tar" --xz --help &> /dev/null; then
+		if "$tar" --xz --help >/dev/null 2>&1; then
 			tar_x "$1"
 		else
 			xzcat "$1" | tar_x -
@@ -84,13 +82,12 @@ untar() {
 }
 
 extract() {
-	local type
-	type="$(file -E -bL --mime-type "$1")"
-	if (($?)); then
-		err "$type"
+	type_ex="$(file -E -bL --mime-type "$1")"
+	if [ $? != 0 ]; then
+		err "$type_ex"
 		return 1
 	fi
-	case "$type" in
+	case "$type_ex" in
 	'application/x-7z-compressed')
 		if exists 7za; then
 			7za x "$1"
@@ -163,20 +160,19 @@ extract() {
 		lz4 -d "$1"
 		;;
 	*)
-		errf "no handler for '%s' (%s), trying bsdtar\n" "$1" "$type"
+		errf "no handler for '%s' (%s), trying bsdtar\n" "$1" "$type_ex"
 		bsdtar_x "$1"
 		;;
 	esac
 }
 
 unarchive() {
-	local type
-	type="$(file -E -bzL --mime-type "$1")"
-	if (($?)); then
-		err "$type"
+	type_un="$(file -E -bzL --mime-type "$1")"
+	if [ $? != 0 ]; then
+		err "$type_un"
 		return 1
 	fi
-	case "$type" in
+	case "$type_un" in
 	'application/x-tar')
 		untar "$1"
 		;;
@@ -186,39 +182,23 @@ unarchive() {
 	esac
 }
 
-while (($#)); do
+while :; do
 	case "$1" in
-	-h)
-		usage
-		exit
-		;;
-	-c)
-		clobber=1
-		shift
-		;;
-	-d)
-		if [[ -z "$2" ]]; then
-			err 'argument required for -d'
-			usage
-			exit 1
-		fi
-		out_dir="$2"
-		shift 2
-		;;
-	-c)
-		create_dir=1
-		shift
-		;;
-	*)
-		archives+=("$1")
-		shift
-		;;
+	'') break ;;
+	--) shift; break ;;
+	-h) usage; exit ;;
+	-c) clobber=1; shift ;;
+	-c) create_dir=1; shift ;;
+	-d) if [ -z "$2" ]; then err 'argument required for -d'; usage exit 1; fi
+	    out_dir="$2"; shift 2 ;;
+	-?*) printf '%s: invalid option: %s\n' "$(basename "$0")" "$1" 1>&2; exit 1 ;;
+	*) break ;;
 	esac
 done
 
-if [[ -n "$out_dir" ]]; then
-	if ((create_dir)); then mkdir -p "$out_dir"; fi
-	if [[ ! -d "$out_dir" ]]; then
+if [ -n "$out_dir" ]; then
+	if [ "$create_dir" != 0 ]; then mkdir -p "$out_dir"; fi
+	if [ ! -d "$out_dir" ]; then
 		errf "output directory doesn't exist: %s\n" "$out_dir"
 	fi
 	prefix="$PWD/"
@@ -227,7 +207,7 @@ fi
 
 exit_status=0
 
-for archive in "${archives[@]}"; do
+for archive in "$@"; do
 	file_name="$(basename "$archive")"
 	extract_dir="${file_name%.*}"
 	if ! unarchive "$prefix$archive"; then
