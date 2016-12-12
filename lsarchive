@@ -6,14 +6,14 @@ prog="$(basename "$0")"
 v=''
 
 usage() {
-	cat >&2 <<-EOF
-	Usage: $prog [option ...] file [file ...]
-	Lists the contents of archives.
+	cat 1>&2 <<EOF
+Usage: $prog [option ...] file [file ...]
+Lists the contents of archives.
 
-	Options:
-	  -h    Show this help
-	  -v    Try to be verbose
-	EOF
+Options:
+  -h    Show this help
+  -v    Try to be verbose
+EOF
 }
 
 exists() { command -v foo >/dev/null 2>&1; }

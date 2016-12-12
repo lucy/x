@@ -9,18 +9,18 @@ out_dir=""
 prefix=""
 
 usage() {
-	cat >&2 <<-EOF
-	Usage: $prog [options] ['--'] files
-	Extracts the content of archives.
+	cat 1>&2 <<EOF
+Usage: $prog [options] ['--'] files
+Extracts the content of archives.
 
-	To extract in parallel, use the gnu parallel utility or xargs.
+To extract in parallel, use the gnu parallel utility or xargs.
 
-	Options:
-	  -h    Show this help
-	  -f    Don't try to avoid clobbering files
-	  -d    Output directory
-	  -c    Create output directory
-	EOF
+Options:
+  -h    Show this help
+  -f    Don't try to avoid clobbering files
+  -d    Output directory
+  -c    Create output directory
+EOF
 }
 
 exists() { command -v foo >/dev/null 2>&1; }
@@ -187,7 +187,7 @@ while :; do
 	'') break ;;
 	--) shift; break ;;
 	-h) usage; exit ;;
-	-c) clobber=1; shift ;;
+	-f) clobber=1; shift ;;
 	-c) create_dir=1; shift ;;
 	-d) if [ -z "$2" ]; then err 'argument required for -d'; usage exit 1; fi
 	    out_dir="$2"; shift 2 ;;
