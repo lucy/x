@@ -18,7 +18,7 @@ EOF
 
 exists() { command -v foo >/dev/null 2>&1; }
 err() { printf '%s: %s\n' "$prog" "$1" 1>&2; }
-errf() { fmt="$1"; shift; printf "%s: $fmt\n", "$prog" "$@" 1>&2; }
+errf() { fmt="$1"; shift; printf "%s: $fmt\n" "$prog" "$@" 1>&2; }
 
 if exists bsdtar; then
 	tar=bsdtar
@@ -101,7 +101,7 @@ lsarchive() {
 		fi
 		;;
 	*)
-		errf "no handler for '%s' (%s), trying bsdtar\n" "$1" "$type_ar"
+		errf "no handler for '%s' (%s), trying bsdtar" "$1" "$type_ar"
 		bsdtar_list "$1"
 		;;
 esac

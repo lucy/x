@@ -25,7 +25,7 @@ EOF
 
 exists() { command -v foo >/dev/null 2>&1; }
 err() { printf '%s: %s\n' "$prog" "$1" 1>&2; }
-errf() { fmt="$1"; shift; printf "%s: $fmt\n", "$prog" "$@" 1>&2; }
+errf() { fmt="$1"; shift; printf "%s: $fmt\n" "$prog" "$@" 1>&2; }
 
 if exists bsdtar; then
 	tar=bsdtar
@@ -160,7 +160,7 @@ extract() {
 		lz4 -d "$1"
 		;;
 	*)
-		errf "no handler for '%s' (%s), trying bsdtar\n" "$1" "$type_ex"
+		errf "no handler for '%s' (%s), trying bsdtar" "$1" "$type_ex"
 		bsdtar_x "$1"
 		;;
 	esac
@@ -199,7 +199,7 @@ done
 if [ -n "$out_dir" ]; then
 	if [ "$create_dir" != 0 ]; then mkdir -p "$out_dir"; fi
 	if [ ! -d "$out_dir" ]; then
-		errf "output directory doesn't exist: %s\n" "$out_dir"
+		errf "output directory doesn't exist: %s" "$out_dir"
 	fi
 	prefix="$PWD/"
 	cd "$out_dir"
